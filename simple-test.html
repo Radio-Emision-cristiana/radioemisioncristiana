@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Simple Reproductor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #222;
+            color: white;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .visualizer {
+            display: flex;
+            align-items: end;
+            height: 100px;
+            gap: 3px;
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            justify-content: center;
+        }
+        
+        .bar {
+            width: 6px;
+            height: 10%;
+            background: linear-gradient(to top, #ff0000, #ff7f00, #ffff00, #00ff00);
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { height: 10%; }
+            25% { height: 80%; }
+            50% { height: 40%; }
+            75% { height: 60%; }
+        }
+        
+        .animated .bar {
+            animation: bounce 0.8s ease-in-out infinite;
+        }
+        
+        .animated .bar:nth-child(2n) { animation-delay: 0.1s; }
+        .animated .bar:nth-child(3n) { animation-delay: 0.2s; }
+        .animated .bar:nth-child(4n) { animation-delay: 0.3s; }
+        .animated .bar:nth-child(5n) { animation-delay: 0.4s; }
+        
+        .status {
+            margin: 10px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .success { background: rgba(0,255,0,0.2); }
+        .error { background: rgba(255,0,0,0.2); }
+        .warning { background: rgba(255,255,0,0.2); color: black; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Test Simple del Reproductor</h1>
+        
+        <div class="status" id="status">
+            Listo para probar
+        </div>
+        
+        <div class="controls">
+            <button onclick="testBasicAudio()">🔊 Test Audio Básico</button>
+            <button onclick="testVisualizer()">📊 Test Visualizador</button>
+            <button onclick="testBoth()">🎵 Test Completo</button>
+            <button onclick="stopAll()">⏹️ Parar Todo</button>
+        </div>
+        
+        <audio id="audio" src="https://stream.zeno.fm/yg7bvksbfwzuv" preload="auto"></audio>
+        
+        <div class="visualizer" id="visualizer">
+            <!-- Barras generadas por JS -->
+        </div>
+        
+        <div class="status" id="logs">
+            <strong>Logs:</strong><br>
+            <div id="log-content">Esperando...</div>
+        </div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('audio');
+        const visualizer = document.getElementById('visualizer');
+        const status = document.getElementById('status');
+        const logContent = document.getElementById('log-content');
+        
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let source;
+        let isPlaying = false;
+        let animationId;
+        
+        // Generar barras del visualizador
+        for (let i = 0; i < 40; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            visualizer.appendChild(bar);
+        }
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            logContent.scrollTop = logContent.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = '') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function testBasicAudio() {
+            log('🔊 Iniciando test de audio básico...');
+            updateStatus('Probando audio...', 'warning');
+            
+            audio.play()
+                .then(() => {
+                    log('✅ Audio funcionando correctamente');
+                    updateStatus('✅ Audio funcionando', 'success');
+                    isPlaying = true;
+                })
+                .catch(error => {
+                    log(`❌ Error de audio: ${error.message}`);
+                    updateStatus('❌ Error de audio', 'error');
+                });
+        }
+        
+        function testVisualizer() {
+            log('📊 Iniciando test de visualizador...');
+            updateStatus('Probando visualizador...', 'warning');
+            
+            visualizer.classList.add('animated');
+            
+            setTimeout(() => {
+                log('✅ Visualizador CSS funcionando');
+                updateStatus('✅ Visualizador funcionando', 'success');
+            }, 1000);
+        }
+        
+        function testBoth() {
+            log('🎵 Iniciando test completo...');
+            updateStatus('Probando todo...', 'warning');
+            
+            // Primero probar audio
+            audio.play()
+                .then(() => {
+                    log('✅ Audio iniciado');
+                    isPlaying = true;
+                    
+                    // Luego el visualizador
+                    visualizer.classList.add('animated');
+                    log('✅ Visualizador CSS activado');
+                    
+                    // Intentar Web Audio API
+                    setTimeout(() => {
+                        setupWebAudio();
+                    }, 1000);
+                    
+                    updateStatus('✅ Test completo funcionando', 'success');
+                })
+                .catch(error => {
+                    log(`❌ Error en test completo: ${error.message}`);
+                    updateStatus('❌ Error en test completo', 'error');
+                });
+        }
+        
+        function setupWebAudio() {
+            try {
+                log('🔧 Configurando Web Audio API...');
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                
+                if (!source) {
+                    source = audioContext.createMediaElementSource(audio);
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    log('🔗 Audio graph conectado correctamente');
+                }
+                
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                log('✅ Web Audio API configurado');
+                
+                // Iniciar visualizador en tiempo real
+                startRealTimeVisualizer();
+                
+            } catch (error) {
+                log(`❌ Error en Web Audio API: ${error.message}`);
+            }
+        }
+        
+        function startRealTimeVisualizer() {
+            if (!analyser || !dataArray) return;
+            
+            log('🎬 Iniciando visualizador en tiempo real...');
+            
+            // Quitar animación CSS
+            visualizer.classList.remove('animated');
+            
+            function updateBars() {
+                if (!isPlaying) return;
+                
+                analyser.getByteFrequencyData(dataArray);
+                const bars = visualizer.querySelectorAll('.bar');
+                const step = Math.floor(dataArray.length / bars.length);
+                
+                bars.forEach((bar, index) => {
+                    const dataIndex = index * step;
+                    const value = dataArray[dataIndex];
+                    const height = (value / 255) * 90 + 10;
+                    bar.style.height = `${height}%`;
+                    bar.style.animation = 'none';
+                });
+                
+                animationId = requestAnimationFrame(updateBars);
+            }
+            
+            updateBars();
+            log('🎯 Visualizador en tiempo real activado');
+        }
+        
+        function stopAll() {
+            log('⏹️ Parando todo...');
+            
+            audio.pause();
+            isPlaying = false;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            visualizer.classList.remove('animated');
+            
+            const bars = visualizer.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                bar.style.height = '10%';
+                bar.style.animation = '';
+            });
+            
+            updateStatus('⏹️ Todo detenido', '');
+            log('✅ Todo detenido correctamente');
+        }
+        
+        // Event listeners
+        audio.addEventListener('play', () => {
+            log('🎵 Audio iniciado');
+            isPlaying = true;
+        });
+        
+        audio.addEventListener('pause', () => {
+            log('⏸️ Audio pausado');
+            isPlaying = false;
+        });
+        
+        audio.addEventListener('error', (e) => {
+            log(`❌ Error de audio: ${e.type}`);
+            updateStatus('❌ Error de conexión', 'error');
+        });
+        
+        log('📱 Página cargada correctamente');
+        updateStatus('Listo para probar', '');
+    </script>
+</body>
+</html>

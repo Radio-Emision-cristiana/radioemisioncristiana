@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Mínimo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #333;
+            color: white;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .visualizer {
+            display: flex;
+            align-items: end;
+            height: 80px;
+            gap: 3px;
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            justify-content: center;
+        }
+        
+        .bar {
+            width: 6px;
+            height: 10%;
+            background: linear-gradient(to top, #ff0000, #ffff00, #00ff00);
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+        
+        @keyframes simpleWave {
+            0% { height: 10%; }
+            25% { height: 60%; }
+            50% { height: 30%; }
+            75% { height: 80%; }
+            100% { height: 10%; }
+        }
+        
+        .animated .bar {
+            animation: simpleWave 0.6s ease-in-out infinite;
+        }
+        
+        .animated .bar:nth-child(2n) { animation-delay: 0.1s; }
+        .animated .bar:nth-child(3n) { animation-delay: 0.2s; }
+        .animated .bar:nth-child(4n) { animation-delay: 0.3s; }
+        .animated .bar:nth-child(5n) { animation-delay: 0.4s; }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        
+        .success { background: rgba(0,255,0,0.2) !important; }
+        .error { background: rgba(255,0,0,0.2) !important; }
+        .warning { background: rgba(255,255,0,0.2) !important; color: black; }
+        
+        #log {
+            text-align: left;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Test Mínimo</h1>
+        
+        <div class="status" id="status">
+            Listo para probar
+        </div>
+        
+        <button onclick="testAudio()">🔊 Probar Audio</button>
+        <button onclick="testVisualizer()">📊 Probar Visualizador</button>
+        <button onclick="testBoth()">🎵 Probar Ambos</button>
+        <button onclick="stopAll()">⏹️ Parar</button>
+        
+        <audio id="test-audio" preload="auto">
+            <source src="https://stream.zeno.fm/yg7bvksbfwzuv" type="audio/mpeg">
+        </audio>
+        
+        <div class="visualizer" id="visualizer">
+            <!-- Se crean las barras con JavaScript -->
+        </div>
+        
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('test-audio');
+        const visualizer = document.getElementById('visualizer');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        
+        let isPlaying = false;
+        
+        // Crear barras del visualizador
+        for (let i = 0; i < 30; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            visualizer.appendChild(bar);
+        }
+        
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = '') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function testAudio() {
+            addLog('🔊 === PROBANDO AUDIO ===');
+            updateStatus('Probando audio...', 'warning');
+            
+            if (!audio) {
+                addLog('❌ Elemento de audio no encontrado');
+                updateStatus('❌ Error: No audio element', 'error');
+                return;
+            }
+            
+            addLog('📡 Stream URL: ' + audio.src);
+            addLog('🔧 Ready state: ' + audio.readyState);
+            addLog('⏸️ Paused: ' + audio.paused);
+            
+            audio.play()
+                .then(() => {
+                    addLog('✅ Audio reproduciéndose correctamente');
+                    updateStatus('✅ Audio funcionando', 'success');
+                    isPlaying = true;
+                })
+                .catch(error => {
+                    addLog('❌ Error de audio: ' + error.message);
+                    updateStatus('❌ Error de audio', 'error');
+                });
+        }
+        
+        function testVisualizer() {
+            addLog('📊 === PROBANDO VISUALIZADOR ===');
+            updateStatus('Probando visualizador...', 'warning');
+            
+            const bars = visualizer.querySelectorAll('.bar');
+            addLog('🔍 Barras encontradas: ' + bars.length);
+            
+            if (bars.length === 0) {
+                addLog('❌ No se encontraron barras');
+                updateStatus('❌ Error: No bars found', 'error');
+                return;
+            }
+            
+            // Activar animación
+            visualizer.classList.add('animated');
+            addLog('🎨 Animación CSS activada');
+            
+            setTimeout(() => {
+                addLog('✅ Visualizador funcionando correctamente');
+                updateStatus('✅ Visualizador funcionando', 'success');
+            }, 1000);
+        }
+        
+        function testBoth() {
+            addLog('🎵 === PROBANDO TODO ===');
+            updateStatus('Probando audio + visualizador...', 'warning');
+            
+            // Primero el audio
+            audio.play()
+                .then(() => {
+                    addLog('✅ Audio iniciado');
+                    isPlaying = true;
+                    
+                    // Luego el visualizador
+                    visualizer.classList.add('animated');
+                    addLog('✅ Visualizador activado');
+                    
+                    updateStatus('✅ Todo funcionando', 'success');
+                })
+                .catch(error => {
+                    addLog('❌ Error: ' + error.message);
+                    updateStatus('❌ Error en test completo', 'error');
+                });
+        }
+        
+        function stopAll() {
+            addLog('⏹️ === PARANDO TODO ===');
+            
+            if (audio) {
+                audio.pause();
+                addLog('⏸️ Audio pausado');
+            }
+            
+            visualizer.classList.remove('animated');
+            addLog('📊 Visualizador desactivado');
+            
+            isPlaying = false;
+            updateStatus('⏹️ Todo detenido', '');
+            addLog('✅ Todo detenido correctamente');
+        }
+        
+        // Event listeners para el audio
+        audio.addEventListener('play', () => {
+            addLog('🎵 Evento PLAY detectado');
+            isPlaying = true;
+        });
+        
+        audio.addEventListener('pause', () => {
+            addLog('⏸️ Evento PAUSE detectado');
+            isPlaying = false;
+        });
+        
+        audio.addEventListener('error', (e) => {
+            addLog('❌ Evento ERROR: ' + e.type);
+            updateStatus('❌ Error de conexión', 'error');
+        });
+        
+        audio.addEventListener('canplay', () => {
+            addLog('✅ Evento CANPLAY - Audio listo');
+        });
+        
+        audio.addEventListener('waiting', () => {
+            addLog('⏳ Evento WAITING - Cargando datos');
+        });
+        
+        audio.addEventListener('playing', () => {
+            addLog('▶️ Evento PLAYING - Realmente reproduciendo');
+        });
+        
+        audio.addEventListener('loadstart', () => {
+            addLog('📥 Evento LOADSTART - Iniciando carga');
+        });
+        
+        // Inicialización
+        addLog('📱 === PÁGINA CARGADA ===');
+        addLog('🔍 Audio element: ' + (audio ? 'Encontrado' : 'NO ENCONTRADO'));
+        addLog('🔍 Visualizer element: ' + (visualizer ? 'Encontrado' : 'NO ENCONTRADO'));
+        addLog('🔍 Barras creadas: ' + visualizer.querySelectorAll('.bar').length);
+        
+        updateStatus('Listo para probar', '');
+        
+        // Test automático inicial
+        setTimeout(() => {
+            addLog('🚀 Iniciando test automático...');
+            testBoth();
+        }, 2000);
+    </script>
+</body>
+</html>
